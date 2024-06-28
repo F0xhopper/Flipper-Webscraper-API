@@ -83,7 +83,7 @@ def scrape_sold_listings(item_name):
                 listings_data.append(listing_data)
                 print(listing_data)
 
-                if len(listings_data) >= 100:
+                if len(listings_data) >= 150:
                     break
             except Exception as e:
                 print(f"Error processing a listing: {e}")
