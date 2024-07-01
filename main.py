@@ -9,7 +9,7 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app, resources={r"/scrape*": {"origins": "*"}})
 
-def scrape_sold_listings(item_name):
+def scrape_sold_listings(item_name,listings_amount,listing_format):
     # Setup Chrome webdriver with Selenium
     options = Options()
     options.headless = True  # Run in headless mode for API
@@ -46,12 +46,17 @@ def scrape_sold_listings(item_name):
 
         # Wait for the sold listings to load
         time.sleep(2)  # Adjust as necessary
+        if listing_format == "buy-it-now":
+            buy_it_now_filter = driver.find_element(By.CSS_SELECTOR, '.fake-tabs__items > li:nth-child(3) > a')
+            buy_it_now_filter.click()
+            time.sleep(2)
+        elif listing_format == "auction":
+            auction_filter = driver.find_element(By.CSS_SELECTOR, '.fake-tabs__items > li:nth-child(2) > a')
+            auction_filter.click()
+            time.sleep(2)
 
-        auction_filter = driver.find_element(By.CSS_SELECTOR, '.fake-tabs__item > a')
-        auction_filter.click()
-
-        # Extract sold listings data
-        time.sleep(1)
+        # # Extract sold listings data
+        # time.sleep(1)
         sold_listings = driver.find_elements(By.CSS_SELECTOR, "#srp-river-results > ul > .s-item__pl-on-bottom")
 
         listings_data = []
@@ -83,7 +88,7 @@ def scrape_sold_listings(item_name):
                 listings_data.append(listing_data)
                 print(listing_data)
 
-                if len(listings_data) >= 150:
+                if len(listings_data) >= int(listings_amount):
                     break
             except Exception as e:
                 print(f"Error processing a listing: {e}")
@@ -101,10 +106,12 @@ def scrape_sold_listings(item_name):
 @app.route('/scrape', methods=['GET'])
 def scrape():
     item_to_search = request.args.get('item')
+    listings_amount = request.args.get('limit')
+    listing_format = request.args.get('format', 'both')
     if not item_to_search:
         return jsonify({'error': 'No item specified'}), 400
     
-    listings = scrape_sold_listings(item_to_search)
+    listings = scrape_sold_listings(item_to_search,listings_amount,listing_format)
     return jsonify(listings)
 
 if __name__ == '__main__':
